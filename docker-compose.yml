@@ -1,5 +1,14 @@
 version: '3'
 services:
+    solr:
+        image: solr
+        ports:
+            - "8983:8983"
+        volumes:
+            - data:/var/solr
+        command:
+            - solr-precreate
+            - gettingstarted
     laravel.test:
         build:
             context: ./vendor/laravel/sail/runtimes/8.2
@@ -51,5 +60,6 @@ networks:
     sail:
         driver: bridge
 volumes:
+    data:
     sail-mysql:
         driver: local
