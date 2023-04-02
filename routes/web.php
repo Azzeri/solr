@@ -18,4 +18,7 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/ping', [SolariumController::class, 'ping']);
+Route::get('/search', [SolariumController::class, 'index']);
+Route::get('/extract', [SolariumController::class, 'extract']);
+Route::get('/crawl', [SolariumController::class, 'crawl']);
+Route::post('/search', [SolariumController::class, 'search']);
