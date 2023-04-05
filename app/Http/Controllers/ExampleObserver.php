@@ -12,10 +12,13 @@ use Illuminate\Support\Facades\Log;
 class ExampleObserver extends CrawlObserver
 {
   public $content;
+  public $messages;
 
-  public function __construct() {
-      $this->content = NULL;
-  }  
+  public function __construct()
+  {
+    $this->content = NULL;
+    $this->messages = [];
+  }
 
   /**
    * Called when the crawler will crawl the url.
@@ -43,6 +46,7 @@ class ExampleObserver extends CrawlObserver
     @$doc->loadHTML($response->getBody());
     //# save HTML 
     $content = $doc->saveHTML();
+
     //# convert encoding
     // $content1 = mb_convert_encoding($content, 'UTF-8', mb_detect_encoding($content, 'UTF-8, ISO-8859-1', true));
     // //# strip all javascript
@@ -57,8 +61,17 @@ class ExampleObserver extends CrawlObserver
     // $content7 = preg_replace('/\s+/S', " ", $content6);
     // //# html entity decode - ö was shown as &ouml;
     // $html = html_entity_decode($content7);
+
     //# append
-    $this->content .= $content;
+    // $this->content .= $content;
+    $name = $url->getHost() . $url->getPath();
+
+    $myfile = fopen(__DIR__ . "/crawled_docs/" . str_replace("/", "", $name) . ".html", "w");
+    fwrite($myfile, $content);
+    fclose($myfile);
+    $myfile = fopen(__DIR__ . "/crawled_docs/" . str_replace("/", "", $name) . ".html", "a");
+    fwrite($myfile, '<autoappendedurl>' . $url->getScheme() . '://' . $url->getHost() . $url->getPath() . '</autoappendedurl>');
+    fclose($myfile);
   }
 
   /**
@@ -73,7 +86,7 @@ class ExampleObserver extends CrawlObserver
     RequestException $requestException,
     ?UriInterface $foundOnUrl = null
   ): void {
-    Log::error('crawlFailed',['url'=>$url,'error'=>$requestException->getMessage()]);
+    array_push($this->messages, 'crawlFailed' . ': URL: ' . $url . ' : ' . $requestException->getMessage());
   }
 
   /**
@@ -81,6 +94,6 @@ class ExampleObserver extends CrawlObserver
    */
   public function finishedCrawling(): void
   {
-    Log::info("finishedCrawling");
+    array_push($this->messages, "finishedCrawling");
   }
 }

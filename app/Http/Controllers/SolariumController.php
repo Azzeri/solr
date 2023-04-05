@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use \Solarium\Client;
 use Spatie\Crawler\Crawler;
-use Spatie\Crawler\CrawlProfiles\CrawlInternalUrls;
 use App\Http\Controllers\Controller;
+use DirectoryIterator;
 use GuzzleHttp\RequestOptions;
+use Spatie\Crawler\CrawlProfiles\CrawlAllUrls;
+
 class SolariumController extends Controller
 {
     public function __construct(protected Client $client)
@@ -16,61 +18,109 @@ class SolariumController extends Controller
 
     public function index()
     {
-        return view('search', ['searchResult' => []]);
+        return view('search');
     }
 
     public function search(Request $request)
     {
+        $request->validate([
+            'searchContent' => 'required'
+        ]);
+
         $query = $this->client->createQuery($this->client::QUERY_SELECT);
 
         $query = $this->client->createSelect();
-        $query->createFilterQuery('genre')->setQuery('genre:' . $request->searchContent . '');
+        $query->createFilterQuery('attr_keywords')->setQuery('attr_keywords:' . $request->searchContent . '');
         $resultset = $this->client->select($query);
 
-        return view('search', ['searchResult' => $resultset]);
+        return redirect()->back()->with('searchResult', $resultset)->with('logMessages', ['Przedstawiam wyniki...']);
     }
 
     public function extract()
     {
+        $files = scandir(__DIR__ . "/crawled_docs/");
+
         $query = $this->client->createExtract();
         $query->addFieldMapping('content', 'text');
         $query->setUprefix('attr_');
         // $query->setFile(__DIR__ . '/index.html');
-        $query->setFile(__DIR__ . '/testfile.html');
+
+        // $query->setFile(Storage::url('example.html'));
+
         $query->setCommit(true);
         $query->setOmitHeader(false);
+        $messages = [];
+        foreach ($files as $file) {
+            if (in_array($file, array(".", ".."))) {
+                continue;
+            }
+            $myfile = file_get_contents(__DIR__ . "/crawled_docs/" . $file);
+            $pos = strpos($myfile, "<autoappendedurl>");
+            $url = file_get_contents(filename: __DIR__ . "/crawled_docs/" . $file, offset: $pos);
+            $striped = str_replace("<autoappendedurl>", "", $url);
+            $stripedUrl = str_replace("</autoappendedurl>", "", $striped);
 
-        // add document
-        $doc = $query->createDocument();
-        $doc->id = 'extract-test4';
-        $doc->some = 'more fields';
-        $query->setDocument($doc);
-
-        // this executes the query and returns the result
-        $result = $this->client->extract($query);
-
-        echo '<b>Extract query executed</b><br/>';
-        echo 'Query status: ' . $result->getStatus() . '<br/>';
-        echo 'Query time: ' . $result->getQueryTime();
+            $query->setFile(__DIR__ . "/crawled_docs/" . $file);
+            $doc = $query->createDocument();
+            $doc->id = $file;
+            $doc->custom_url = $stripedUrl;
+            $query->setDocument($doc);
+            // // this executes the query and returns the result
+            $result = $this->client->extract($query);
+            array_push($messages, 'Extract query executed for: ' . $file . ': ' . $result->getQueryTime() . 'ms');
+        }
+        return redirect()->back()->with('logMessages', $messages);
     }
 
-    public function crawl()
+    public function crawl(Request $request)
     {
+        $request->validate([
+            'crawlUrl' => 'required'
+        ]);
+
         $observer = new ExampleObserver();
-        //# initiate crawler 
         Crawler::create([RequestOptions::ALLOW_REDIRECTS => true, RequestOptions::TIMEOUT => 30])
             ->acceptNofollowLinks()
             ->ignoreRobots()
             // ->setParseableMimeTypes(['text/html', 'text/plain'])
             ->setCrawlObserver($observer)
-            ->setCrawlProfile(new CrawlInternalUrls('https://www.lipsum.com'))
-            ->setMaximumResponseSize(1024 * 1024 * 2) // 2 MB maximum
+            ->setCrawlProfile(new CrawlAllUrls($request->crawlUrl))
+            ->setMaximumResponseSize(1024 * 1024 * 4) // 2 MB maximum
             ->setTotalCrawlLimit(100) // limit defines the maximal count of URLs to crawl
             // ->setConcurrency(1) // all urls will be crawled one by one
-            ->setDelayBetweenRequests(100)
-            ->startCrawling('https://www.lipsum.com');
-        $myfile = fopen("testfile.html", "w");
-        fwrite($myfile, $observer->content);
-        fclose($myfile);
+            ->setDelayBetweenRequests(150)
+            ->startCrawling($request->crawlUrl);
+
+        return redirect()->back()->with('logMessages', $observer->messages);
+    }
+
+    public function cleanDocuments()
+    {
+        foreach (new DirectoryIterator(__DIR__ . "/crawled_docs/") as $fileInfo) {
+            if (!$fileInfo->isDot()) {
+                unlink($fileInfo->getPathname());
+            }
+        }
+
+        $files = scandir(__DIR__ . "/crawled_docs/");
+        $message = sizeof($files) == 2 ? 'Pliki usunięte' : 'Nie udało się usunąć wszystkich plików';
+
+        return redirect()->back()->with('logMessages', [$message]);
+    }
+
+    public function cleanDatabase()
+    {
+        $update = $this->client->createUpdate();
+        $update->addDeleteQuery('*:*');
+        $update->addCommit();
+        $result = $this->client->update($update);
+
+        $query = $this->client->createQuery($this->client::QUERY_SELECT);
+        $resultset = $this->client->execute($query);
+        $noResults = $resultset->getNumFound();
+
+        $message = $noResults == 0 ? 'Pliki usunięte' : 'Nie udało się usunąć wszystkich plików';
+
+        return redirect()->back()->with('logMessages', [$message]);
     }
 }

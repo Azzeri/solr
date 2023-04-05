@@ -15,10 +15,13 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect('/search');
 });
 
 Route::get('/search', [SolariumController::class, 'index']);
 Route::get('/extract', [SolariumController::class, 'extract']);
-Route::get('/crawl', [SolariumController::class, 'crawl']);
+Route::post('/crawl', [SolariumController::class, 'crawl']);
 Route::post('/search', [SolariumController::class, 'search']);
+Route::get('/cleanDocuments', [SolariumController::class, 'cleanDocuments']);
+Route::get('/cleanDatabase', [SolariumController::class, 'cleanDatabase']);
+
