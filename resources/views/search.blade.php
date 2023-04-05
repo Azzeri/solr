@@ -52,7 +52,7 @@
 
     </div>
     <div class="layout">
-        <div>
+        <div><button class="btn btn-primary btn-square">asd</button>
             <form method="POST" action="/search">
                 @csrf
                 <label for="searchContent"></label>
