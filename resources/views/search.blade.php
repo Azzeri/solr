@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pl" data-theme="wireframe">
+<html lang="pl" data-theme="pastel">
 
 <head>
     <meta charset="UTF-8">
