@@ -31,6 +31,7 @@ class SolariumController extends Controller
 
         $query = $this->client->createSelect();
         $query->createFilterQuery('attr_keywords')->setQuery('attr_keywords:' . $request->searchContent . '');
+        $query->createFilterQuery('attr_description')->setQuery('attr_description:' . $request->searchContent . '');
         $resultset = $this->client->select($query);
 
         return redirect()->back()->with('searchResult', $resultset)->with('logMessages', ['Przedstawiam wyniki...']);
