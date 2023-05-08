@@ -15,7 +15,7 @@
             <form method="POST" action="/search">
                 @csrf
                 <div class="input-group prose">
-                    <input type="text" name="searchContent" placeholder="Szukaj..."
+                    <input type="text" value="php" name="searchContent" placeholder="Szukaj..."
                         class="input input-bordered w-80" />
                     <button class="btn btn-primary btn-square">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
@@ -54,20 +54,23 @@
                 @if (session('searchResult'))
                     @php
                         $conjugation = '';
-                        if (sizeof(session('searchResult')) == 1) {
-                            $conjugation = ' wynik';
+                        if (sizeof(session('searchResult')) >= 5 || sizeof(session('searchResult')) == 0) {
+                            $conjugation = ' wyników';
                         } elseif (sizeof(session('searchResult')) >= 2) {
                             $conjugation = ' wyniki';
-                        } elseif (sizeof(session('searchResult')) >= 5 || sizeof(session('searchResult')) == 0) {
-                            $conjugation = ' wyników';
+                        } elseif (sizeof(session('searchResult')) == 1) {
+                            $conjugation = ' wynik';
                         }
                     @endphp
                     <h4>Znaleziono {{ sizeof(session('searchResult')) . $conjugation }}</h4>
                     @foreach (session('searchResult') as $document)
                         <div class="flex flex-col mt-3">
                             <a class="link link-hover text-lg"
-                                href="{{ $document->attr_custom_url[0] }}">{{ $document->id }}</a>
-                            <p class="m-0 font-bold">{{ $document->attr_keywords[0] }}</p>
+                                href="{{ $document->attr_custom_url[0] }}">{{ $document->id }}
+                            </a>
+                            @if ($document->attr_keywords)
+                                <p class="m-0 font-bold">{{ $document->attr_keywords[0] }}</p>
+                            @endif
                             @if ($document->attr_description)
                                 <p class="m-0">{{ $document->attr_description[0] }}</p>
                             @endif

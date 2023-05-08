@@ -27,14 +27,22 @@ class SolariumController extends Controller
             'searchContent' => 'required'
         ]);
 
-        $query = $this->client->createQuery($this->client::QUERY_SELECT);
-
         $query = $this->client->createSelect();
-        $query->createFilterQuery('attr_keywords')->setQuery('attr_keywords:' . $request->searchContent . '');
-        $query->createFilterQuery('attr_description')->setQuery('attr_description:' . $request->searchContent . '');
+        $query->setRows(1000);
+
+        $query->setQuery(
+            'attr_keywords:' . $request->searchContent
+                . ' OR attr_title:' . $request->searchContent
+                . ' OR attr_description:' . $request->searchContent
+                . ' OR attr_text:' . $request->searchContent
+        );
+
         $resultset = $this->client->select($query);
 
-        return redirect()->back()->with('searchResult', $resultset)->with('logMessages', ['Przedstawiam wyniki...']);
+        return redirect()
+            ->back()
+            ->with('searchResult', $resultset)
+            ->with('logMessages', ['Przedstawiam wyniki...']);
     }
 
     public function extract()
