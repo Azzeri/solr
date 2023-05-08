@@ -12,6 +12,24 @@
 <body class="bg-base-200 p-4 h-screen">
     <div class="container mx-auto glass rounded-lg p-4 h-full">
         <div class="flex justify-between">
+            <h1 class="text-4xl font-bold font-mono text-primary-content">Semantica</h1>
+            @if (Auth::user())
+                <div class="flex space-x-2">
+                    <a class="font-bold" href="{{ route('profile.edit') }}"
+                        class="text-primary-content">{{ Auth::user()->name }}</a>
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <input type="submit" class="text-primary-content cursor-pointer" value="Wyloguj" />
+                    </form>
+                </div>
+            @else
+                <div class="flex space-x-2">
+                    <a href="{{ route('login') }}" class="text-primary-content">Logowanie</a>
+                    <a href="{{ route('register') }}" class="text-primary-content">Rejestracja</a>
+                </div>
+            @endif
+        </div>
+        <div class="flex justify-between mt-6">
             <form method="POST" action="/search">
                 @csrf
                 <div class="input-group prose">
