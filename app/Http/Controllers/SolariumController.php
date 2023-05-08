@@ -6,13 +6,13 @@ use Illuminate\Http\Request;
 use \Solarium\Client;
 use Spatie\Crawler\Crawler;
 use App\Http\Controllers\Controller;
-use DirectoryIterator;
+use App\Service;
 use GuzzleHttp\RequestOptions;
 use Spatie\Crawler\CrawlProfiles\CrawlAllUrls;
 
 class SolariumController extends Controller
 {
-    public function __construct(protected Client $client)
+    public function __construct(protected Client $client, public Service $service)
     {
     }
 
@@ -87,7 +87,7 @@ class SolariumController extends Controller
             'crawlUrl' => 'required'
         ]);
 
-        $observer = new ExampleObserver();
+        $observer = new ExampleObserver($this->client);
         Crawler::create([RequestOptions::ALLOW_REDIRECTS => true, RequestOptions::TIMEOUT => 30])
             ->acceptNofollowLinks()
             ->ignoreRobots()
@@ -105,14 +105,7 @@ class SolariumController extends Controller
 
     public function cleanDocuments()
     {
-        foreach (new DirectoryIterator(__DIR__ . "/crawled_docs/") as $fileInfo) {
-            if (!$fileInfo->isDot()) {
-                unlink($fileInfo->getPathname());
-            }
-        }
-
-        $files = scandir(__DIR__ . "/crawled_docs/");
-        $message = sizeof($files) == 2 ? 'Pliki usunięte' : 'Nie udało się usunąć wszystkich plików';
+        $message = $this->service->cleanDocuments();
 
         return redirect()->back()->with('logMessages', [$message]);
     }

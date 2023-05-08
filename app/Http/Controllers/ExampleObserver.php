@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Service;
 use Spatie\Crawler\CrawlObservers\CrawlObserver;
 use GuzzleHttp\Exception\RequestException;
 use Psr\Http\Message\ResponseInterface;
@@ -13,11 +14,15 @@ class ExampleObserver extends CrawlObserver
 {
   public $content;
   public $messages;
+  private $service;
+  private $client;
 
-  public function __construct()
+  public function __construct($client)
   {
     $this->content = NULL;
     $this->messages = [];
+    $this->service = new Service();
+    $this->client = $client;
   }
 
   /**
@@ -44,34 +49,19 @@ class ExampleObserver extends CrawlObserver
   ): void {
     $doc = new DOMDocument();
     @$doc->loadHTML($response->getBody());
-    //# save HTML 
+
     $content = $doc->saveHTML();
-
-    //# convert encoding
-    // $content1 = mb_convert_encoding($content, 'UTF-8', mb_detect_encoding($content, 'UTF-8, ISO-8859-1', true));
-    // //# strip all javascript
-    // $content2 = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', '', $content1);
-    // //# strip all style
-    // $content3 = preg_replace('/<style\b[^>]*>(.*?)<\/style>/is', '', $content2);
-    // //# strip tags
-    // $content4 = str_replace('<', ' <', $content3);
-    // $content5 = strip_tags($content4);
-    // $content6 = str_replace('  ', ' ', $content5);
-    // //# strip white spaces and line breaks
-    // $content7 = preg_replace('/\s+/S', " ", $content6);
-    // //# html entity decode - ö was shown as &ouml;
-    // $html = html_entity_decode($content7);
-
-    //# append
-    // $this->content .= $content;
     $name = $url->getHost() . $url->getPath();
-
     $myfile = fopen(__DIR__ . "/crawled_docs/" . str_replace("/", "", $name) . ".html", "w");
     fwrite($myfile, $content);
     fclose($myfile);
     $myfile = fopen(__DIR__ . "/crawled_docs/" . str_replace("/", "", $name) . ".html", "a");
     fwrite($myfile, '<autoappendedurl>' . $url->getScheme() . '://' . $url->getHost() . $url->getPath() . '</autoappendedurl>');
     fclose($myfile);
+
+    $this->service->extractDocument($this->client);
+
+    $message = $this->service->cleanDocuments();
   }
 
   /**
