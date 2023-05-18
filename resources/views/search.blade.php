@@ -1,25 +1,52 @@
+@inject('service', 'App\Service')
 <!DOCTYPE html>
-<html lang="pl" data-theme="pastel">
+<html lang="pl" data-theme="pastel" class="bg-base-200">
 
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://kit.fontawesome.com/f56eaa1e66.js" crossorigin="anonymous"></script>
     @vite('resources/css/app.css')
     <title>Dyplom</title>
 </head>
 
-<body class="bg-base-200 p-4 h-screen">
-    <div class="container mx-auto glass rounded-lg p-4 h-full">
+<body class="p-4 h-screen">
+    <div class="container mx-auto glass rounded-lg p-4 min-h-full">
         <div class="flex justify-between">
             <h1 class="text-4xl font-bold font-mono text-primary-content">Semantica</h1>
             @if (Auth::user())
                 <div class="flex space-x-2">
                     <a class="font-bold" href="{{ route('profile.edit') }}"
-                        class="text-primary-content">{{ Auth::user()->name }}</a>
-                    <form method="POST" action="{{ route('logout') }}">
+                        class="text-primary-content">{{ Auth::user()->name }}
+                    </a>
+                    <div class="dropdown dropdown-end">
+                        <i tabindex="0" class="fa-solid fa-gear cursor-pointer"></i>
+                        <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-max">
+                            <li>
+                                <form action=""></form>
+                                <form method="POST" action="/crawl">
+                                    @csrf
+                                    <div class="flex gap-1">
+                                        <input name="crawlUrl" type="text" value="https://thephp.website/"
+                                            class="input input-bordered input-sm w-full" />
+                                        <input type="submit" class="btn btn-sm btn-primary" value="Pajączek" />
+                                    </div>
+                                </form>
+                            </li>
+                            <li>
+                                <form method="GET" action="/cleanDatabase">
+                                    <input type="submit" class="btn btn-sm btn-error w-full"
+                                        value="Wyczyść dokumenty"></input>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                    <form method="POST" action="{{ route('logout') }}" class="space-x-1">
                         @csrf
-                        <input type="submit" class="text-primary-content cursor-pointer" value="Wyloguj" />
+                        <button>
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </button>
                     </form>
                 </div>
             @else
@@ -29,7 +56,7 @@
                 </div>
             @endif
         </div>
-        <div class="flex justify-between mt-6">
+        <div class="flex space-x-3 mt-6">
             <form method="POST" action="/search">
                 @csrf
                 <div class="input-group prose">
@@ -44,43 +71,44 @@
                     </button>
                 </div>
             </form>
-
-            <div class="flex flex-col gap-x-1 gap-y-2 prose">
-                <form method="POST" action="/crawl">
-                    @csrf
-                    <div class="flex gap-1">
-                        <input name="crawlUrl" type="text" value="https://thephp.website/"
-                            class="input input-bordered input-sm w-full" />
-                        <input type="submit" class="btn btn-sm btn-primary" value="Pajączek" />
-                    </div>
-                </form>
-                <div class="flex gap-1">
-                    <form method="GET" action="/extract">
-                        <input type="submit" class="btn btn-sm btn-primary" value="Indeksuj"></input>
-                    </form>
-                    <form method="GET" action="/cleanDocuments">
-                        <input type="submit" class="btn btn-sm btn-primary" value="Wyczyść pajączka"></input>
-                    </form>
-                    <form method="GET" action="/cleanDatabase">
-                        <input type="submit" class="btn btn-sm btn-primary" value="Wyczyść dokumenty"></input>
-                    </form>
+            <div class="dropdown">
+                <div tabindex="0" class="tooltip tooltip-secondary tooltip-right"
+                    data-tip="Pokaż zainteresowania użytkownika">
+                    <button class="btn btn-secondary">
+                        <i class="fa-solid fa-table-tennis-paddle-ball"></i>
+                    </button>
+                </div>
+                <div class="dropdown-content menu p-4 shadow bg-base-100 rounded-box w-52">
+                    {{ Auth::user()->interests }}
                 </div>
             </div>
         </div>
         <div class="flex justify-between w-full mt-4">
-            <div class="w-2/3 prose prose-sm">
-                @if (session('searchResult'))
-                    @php
-                        $conjugation = '';
-                        if (sizeof(session('searchResult')) >= 5 || sizeof(session('searchResult')) == 0) {
-                            $conjugation = ' wyników';
-                        } elseif (sizeof(session('searchResult')) >= 2) {
-                            $conjugation = ' wyniki';
-                        } elseif (sizeof(session('searchResult')) == 1) {
-                            $conjugation = ' wynik';
-                        }
-                    @endphp
-                    <h4>Znaleziono {{ sizeof(session('searchResult')) . $conjugation }}</h4>
+            @if (session('searchResultWithRecommendation'))
+                <div class="prose prose-sm w-1/2">
+                    <h4><span class="text-accent-focus italic">Rekomendacja: </span>Znaleziono
+                        {{ sizeof(session('searchResultWithRecommendation')) . $service->getResultsConjugation(sizeof(session('searchResultWithRecommendation'))) }}
+                    </h4>
+                    @foreach (session('searchResultWithRecommendation') as $document)
+                        <div class="flex flex-col mt-3">
+                            <a class="link link-hover text-lg"
+                                href="{{ $document->attr_custom_url[0] }}">{{ $document->id }}
+                            </a>
+                            @if ($document->attr_keywords)
+                                <p class="m-0 font-bold">{{ $document->attr_keywords[0] }}</p>
+                            @endif
+                            @if ($document->attr_description)
+                                <p class="m-0">{{ $document->attr_description[0] }}</p>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+            @if (session('searchResult'))
+                <div class="prose prose-sm w-1/2 overflow-auto">
+                    <h4>Znaleziono
+                        {{ sizeof(session('searchResult')) . $service->getResultsConjugation(sizeof(session('searchResult'))) }}
+                    </h4>
                     @foreach (session('searchResult') as $document)
                         <div class="flex flex-col mt-3">
                             <a class="link link-hover text-lg"
@@ -94,19 +122,8 @@
                             @endif
                         </div>
                     @endforeach
-                @endif
-            </div>
-            <div class="w-1/3 prose prose-sm text-right">
-                @if (session('logMessages'))
-                    <h3>Log</h3>
-                    <div class="h-96 overflow-y-scroll">
-                        @foreach (session('logMessages') as $message)
-                            <span>{{ $message }}</span>
-                            <br />
-                        @endforeach
-                    </div>
-                @endif
-            </div>
+                </div>
+            @endif
         </div>
     </div>
 </body>

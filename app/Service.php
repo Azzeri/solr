@@ -3,14 +3,9 @@
 namespace App;
 
 use DirectoryIterator;
-use \Solarium\Client;
 
 class Service
 {
-    public function __construct()
-    {
-    }
-
     public function extractDocument($client)
     {
         $files = scandir(__DIR__ . "/Http/Controllers/crawled_docs/");
@@ -56,5 +51,18 @@ class Service
         $message = sizeof($files) == 2 ? 'Pliki usunięte' : 'Nie udało się usunąć wszystkich plików';
 
         return $message;
+    }
+
+    public function getResultsConjugation(int $size): string
+    {
+        if ($size >= 5 || $size == 0) {
+            $conjugation = ' wyników';
+        } elseif ($size >= 2) {
+            $conjugation = ' wyniki';
+        } elseif ($size == 1) {
+            $conjugation = ' wynik';
+        }
+
+        return $conjugation;
     }
 }

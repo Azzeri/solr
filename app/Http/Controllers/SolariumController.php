@@ -29,7 +29,7 @@ class SolariumController extends Controller
         ]);
 
         $query = $this->client->createSelect();
-        $query->setRows(1000);
+        $query->setRows(10000);
 
         $query->setQuery(
             'attr_keywords:' . $request->searchContent
@@ -41,12 +41,18 @@ class SolariumController extends Controller
         $resultset = $this->client->select($query);
 
         if (Auth::user()) {
-            $resultset = $this->applyUserInterests($resultset);
+            $resultsetWithRecommendation = $this->applyUserInterests($resultset);
         }
 
         return redirect()
             ->back()
             ->with('searchResult', $resultset)
+            ->with(
+                'searchResultWithRecommendation',
+                isset($resultsetWithRecommendation)
+                    ? $resultsetWithRecommendation
+                    : null
+            )
             ->with('logMessages', ['Przedstawiam wyniki...']);
     }
 
@@ -55,11 +61,9 @@ class SolariumController extends Controller
         $user = Auth::user();
         $array = [];
         $interests = explode("|", $user->interests);
-        dump($interests);
         foreach ($resultset as $document) {
             $array[] = $document;
         }
-        echo ('________________________');
         foreach ($resultset as $document) {
             if ($document->attr_keywords) {
                 $keywords = explode(",", $document->attr_keywords[0]);
