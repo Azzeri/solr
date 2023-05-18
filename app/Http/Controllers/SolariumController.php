@@ -8,6 +8,7 @@ use Spatie\Crawler\Crawler;
 use App\Http\Controllers\Controller;
 use App\Service;
 use GuzzleHttp\RequestOptions;
+use Illuminate\Support\Facades\Auth;
 use Spatie\Crawler\CrawlProfiles\CrawlAllUrls;
 
 class SolariumController extends Controller
@@ -39,10 +40,39 @@ class SolariumController extends Controller
 
         $resultset = $this->client->select($query);
 
+        if (Auth::user()) {
+            $resultset = $this->applyUserInterests($resultset);
+        }
+
         return redirect()
             ->back()
             ->with('searchResult', $resultset)
             ->with('logMessages', ['Przedstawiam wyniki...']);
+    }
+
+    private function applyUserInterests($resultset)
+    {
+        $user = Auth::user();
+        $array = [];
+        $interests = explode("|", $user->interests);
+        dump($interests);
+        foreach ($resultset as $document) {
+            $array[] = $document;
+        }
+        echo ('________________________');
+        foreach ($resultset as $document) {
+            if ($document->attr_keywords) {
+                $keywords = explode(",", $document->attr_keywords[0]);
+                $haystack = array_map('strtolower', $keywords);
+                $needles = array_map('strtolower', $interests);
+
+                if (count(array_intersect($haystack, $needles)) > 0) {
+                    $index = array_search($document, $array);
+                    array_unshift($array, array_splice($array, $index, 1)[0]);
+                }
+            }
+        }
+        return $array;
     }
 
     public function extract()
