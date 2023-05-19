@@ -71,17 +71,19 @@
                     </button>
                 </div>
             </form>
-            <div class="dropdown">
-                <div tabindex="0" class="tooltip tooltip-secondary tooltip-right"
-                    data-tip="Pokaż zainteresowania użytkownika">
-                    <button class="btn btn-secondary">
-                        <i class="fa-solid fa-table-tennis-paddle-ball"></i>
-                    </button>
+            @if (Auth::user())
+                <div class="dropdown">
+                    <div tabindex="0" class="tooltip tooltip-secondary tooltip-right"
+                        data-tip="Pokaż zainteresowania użytkownika">
+                        <button class="btn btn-secondary">
+                            <i class="fa-solid fa-table-tennis-paddle-ball"></i>
+                        </button>
+                    </div>
+                    <div class="dropdown-content menu p-4 shadow bg-base-100 rounded-box w-52">
+                        {{ Auth::user()->interests }}
+                    </div>
                 </div>
-                <div class="dropdown-content menu p-4 shadow bg-base-100 rounded-box w-52">
-                    {{ Auth::user()->interests }}
-                </div>
-            </div>
+            @endif
         </div>
         <div class="flex justify-between w-full mt-4">
             @if (session('searchResultWithRecommendation'))
