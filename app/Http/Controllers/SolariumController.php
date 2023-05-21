@@ -39,6 +39,7 @@ class SolariumController extends Controller
         );
 
         $resultset = $this->client->select($query);
+        $resultset = $this->applyBasicSort($resultset);
 
         if (Auth::user()) {
             $resultsetWithRecommendation = $this->applyUserInterests($resultset);
@@ -54,6 +55,36 @@ class SolariumController extends Controller
                     : null
             )
             ->with('logMessages', ['Przedstawiam wyniki...']);
+    }
+
+    private function applyBasicSort($resultset)
+    {
+        $keywordsArray = [];
+        $titleArray = [];
+        $descriptionArray = [];
+        $textArray = [];
+
+        foreach ($resultset as $document) {
+            if ($document->attr_keywords) {
+                $keywordsArray[] = $document;
+                continue;
+            }
+
+            if ($document->attr_title) {
+                $titleArray[] = $document;
+                continue;
+            }
+
+            if ($document->attr_description) {
+                $descriptionArray[] = $document;
+                continue;
+            }
+
+            $textArray[] = $document;
+            continue;
+        }
+
+        return array_merge($keywordsArray, $titleArray, $descriptionArray, $textArray);
     }
 
     private function applyUserInterests($resultset)
