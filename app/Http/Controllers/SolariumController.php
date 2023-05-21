@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use \Solarium\Client;
 use Spatie\Crawler\Crawler;
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Service;
 use GuzzleHttp\RequestOptions;
 use Illuminate\Support\Facades\Auth;
@@ -87,6 +88,21 @@ class SolariumController extends Controller
         return array_merge($keywordsArray, $titleArray, $descriptionArray, $textArray);
     }
 
+    public function preferencesUpdate(Request $request)
+    {
+        $request->validate([
+            'preferences' => 'required'
+        ]);
+
+        $user = User::find(Auth::user()->id);
+
+        $user->update([
+            'interests' => $request->preferences
+        ]);
+
+        return redirect()->back()->with('status', 'success');
+    }
+
     private function applyUserInterests($resultset)
     {
         $user = Auth::user();
@@ -117,7 +133,7 @@ class SolariumController extends Controller
         $query = $this->client->createExtract();
         $query->addFieldMapping('content', 'text');
         $query->setUprefix('attr_');
-        // $query->setFile(__DIR__ . '/index.html');
+        // $query->setFile(__DIR__ . '/index.html'); 
 
         // $query->setFile(Storage::url('example.html'));
 

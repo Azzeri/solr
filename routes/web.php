@@ -31,9 +31,11 @@ Route::middleware('auth')->group(function () {
 
 require __DIR__.'/auth.php';
 
-Route::get('/search', [SolariumController::class, 'index']);
+Route::get('/search', [SolariumController::class, 'index'])->name('search');
 Route::get('/extract', [SolariumController::class, 'extract']);
 Route::post('/crawl', [SolariumController::class, 'crawl']);
 Route::post('/search', [SolariumController::class, 'search']);
 Route::get('/cleanDocuments', [SolariumController::class, 'cleanDocuments']);
 Route::get('/cleanDatabase', [SolariumController::class, 'cleanDatabase']);
+
+Route::put('/preferences/update', [SolariumController::class, 'preferencesUpdate'])->name('preferences.update');
