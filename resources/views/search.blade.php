@@ -88,9 +88,15 @@
                     </h4>
                     @foreach (session('searchResultWithRecommendation') as $document)
                         <div class="flex flex-col mt-3">
-                            <a class="link link-hover text-lg"
-                                href="{{ $document->attr_custom_url[0] }}">{{ $document->id }}
-                            </a>
+                            @if ($document->attr_title)
+                                <a class="link link-hover text-lg"
+                                    href="{{ $document->attr_custom_url[0] }}">{{ $document->attr_title[0] }}
+                                </a>
+                            @else
+                                <a class="link link-hover text-lg"
+                                    href="{{ $document->attr_custom_url[0] }}">{{ $document->id }}
+                                </a>
+                            @endif
                             @if ($document->attr_keywords)
                                 <p class="m-0 font-bold">{{ $document->attr_keywords[0] }}</p>
                             @endif
@@ -108,9 +114,15 @@
                     </h4>
                     @foreach (session('searchResult') as $document)
                         <div class="flex flex-col mt-3">
-                            <a class="link link-hover text-lg"
-                                href="{{ $document->attr_custom_url[0] }}">{{ $document->id }}
-                            </a>
+                            @if ($document->attr_title)
+                                <a class="link link-hover text-lg"
+                                    href="{{ $document->attr_custom_url[0] }}">{{ $document->attr_title[0] }}
+                                </a>
+                            @else
+                                <a class="link link-hover text-lg"
+                                    href="{{ $document->attr_custom_url[0] }}">{{ $document->id }}
+                                </a>
+                            @endif
                             @if ($document->attr_keywords)
                                 <p class="m-0 font-bold">{{ $document->attr_keywords[0] }}</p>
                             @endif
