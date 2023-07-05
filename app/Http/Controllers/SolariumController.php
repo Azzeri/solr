@@ -11,6 +11,10 @@ use App\Service;
 use GuzzleHttp\RequestOptions;
 use Illuminate\Support\Facades\Auth;
 use Spatie\Crawler\CrawlProfiles\CrawlAllUrls;
+use PhpWndb\Dataset\Model\RelationPointerType;
+use PhpWndb\Dataset\WordNetProvider;
+use Symfony\Component\Process\Exception\ProcessFailedException;
+use Symfony\Component\Process\Process;
 
 class SolariumController extends Controller
 {
@@ -30,17 +34,17 @@ class SolariumController extends Controller
         ]);
 
         $query = $this->client->createSelect();
-        $query->setRows(10000);
+        $query->setRows(1500);
 
         $query->setQuery(
             'attr_keywords:' . $request->searchContent
                 . ' OR attr_title:' . $request->searchContent
                 . ' OR attr_description:' . $request->searchContent
-                . ' OR attr_text:' . $request->searchContent
+                // . ' OR attr_text:' . $request->searchContent
         );
 
         $resultset = $this->client->select($query);
-        $resultset = $this->applyBasicSort($resultset);
+        // $resultset = $this->applyBasicSort($resultset);
 
         if (Auth::user()) {
             $resultsetWithRecommendation = $this->applyUserInterests($resultset);
@@ -105,25 +109,99 @@ class SolariumController extends Controller
 
     private function applyUserInterests($resultset)
     {
-        $user = Auth::user();
-        $array = [];
-        $interests = explode("|", $user->interests);
+        $preprocessedDocuments = [];
         foreach ($resultset as $document) {
-            $array[] = $document;
-        }
-        foreach ($resultset as $document) {
+            $articleKeywordsCombined = [];
             if ($document->attr_keywords) {
-                $keywords = explode(",", $document->attr_keywords[0]);
-                $haystack = array_map('strtolower', $keywords);
-                $needles = array_map('strtolower', $interests);
+                $keywordsPrepared = str_replace([', ', ','], '|', $document->attr_keywords[0]);
+                $exploded = array_unique(explode('|', $keywordsPrepared));
+                $keywords = array_values($exploded);
+                $articleKeywordsCombined += $keywords;
+            }
 
-                if (count(array_intersect($haystack, $needles)) > 0) {
-                    $index = array_search($document, $array);
-                    array_unshift($array, array_splice($array, $index, 1)[0]);
+            if ($document->attr_title) {
+                $titlePrepared = str_replace(str_split('\\/:*?"<>|+-·,.()""\''), '|', $document->attr_title[0]);
+                $titlePrepared = str_replace(' ', '|', $titlePrepared);
+                $exploded = array_unique(explode('|', $titlePrepared));
+                if (($key = array_search('', $exploded)) !== false) {
+                    unset($exploded[$key]);
+                }
+                $title = array_values($exploded);
+                $articleKeywordsCombined += $title;
+            }
+
+            // if (sizeof($articleKeywordsCombined) > 0) {
+            $preprocessedDocuments[$document->id] = $articleKeywordsCombined;
+            // }
+        }
+
+        $user = Auth::user();
+        $process = new Process([
+            'python3', '/var/www/html/app/Http/Controllers/test.py',
+            json_encode($preprocessedDocuments, JSON_THROW_ON_ERROR),
+            $user->interests
+        ]);
+        $process->run();
+
+        if (!$process->isSuccessful()) {
+            throw new ProcessFailedException($process);
+        }
+
+        $result = $process->getOutput();
+        $decoded = json_decode($result, true);
+
+        uasort($decoded, function ($a, $b) {
+            if ($a == $b) {
+                return 0;
+            }
+            return ($a > $b) ? -1 : 1;
+        });
+
+        $sortedResult = [];
+        foreach ($decoded as $key => $doc) {
+            foreach ($resultset as $res) {
+                if ($res->id == $key) {
+                    $sortedResult[] = ['document' => $res, 'score' => $doc, 'keywords' => $preprocessedDocuments[$key]];
                 }
             }
         }
-        return $array;
+        return $sortedResult;
+    }
+
+    private function getSynsets()
+    {
+        $process = new Process(['python3', '/var/www/html/app/Http/Controllers/test.py']);
+        $process->run();
+
+        if (!$process->isSuccessful()) {
+            throw new ProcessFailedException($process);
+        }
+
+        $data = $process->getOutput();
+
+        dd($data);
+
+        $wordNet = (new WordNetProvider(cacheDir: \sys_get_temp_dir(), isDebug: true))->getWordNet();
+        $synsets = $wordNet->search('die');
+
+        foreach ($synsets as $synset) {
+            // dump($synset->getGloss());
+            // echo $synset->getType()->name . ': ' . $synset->getGloss() . "\n";
+            foreach ($synset as $word) {
+                // dump($word->toString());
+                foreach ($word->moveTo(RelationPointerType::ANTONYM) as $antonym) {
+                    dump(" x {$antonym->toString()}");
+                }
+            }
+            // foreach ($synset as $word) {
+            //     echo " - {$word->toString()}";
+
+
+            //     echo "\n";
+            // }
+        }
+
+        die();
     }
 
     public function extract()
@@ -176,7 +254,7 @@ class SolariumController extends Controller
             ->setCrawlObserver($observer)
             ->setCrawlProfile(new CrawlAllUrls($request->crawlUrl))
             ->setMaximumResponseSize(1024 * 1024 * 4) // 2 MB maximum
-            ->setTotalCrawlLimit(100) // limit defines the maximal count of URLs to crawl
+            ->setTotalCrawlLimit(10000) // limit defines the maximal count of URLs to crawl
             // ->setConcurrency(1) // all urls will be crawled one by one
             ->setDelayBetweenRequests(150)
             ->startCrawling($request->crawlUrl);

@@ -88,20 +88,21 @@
                     </h4>
                     @foreach (session('searchResultWithRecommendation') as $document)
                         <div class="flex flex-col mt-3">
-                            @if ($document->attr_title)
+                            Waga: {{$document['score']}}
+                            @if ($document['document']->attr_title)
                                 <a class="link link-hover text-lg"
-                                    href="{{ $document->attr_custom_url[0] }}">{{ $document->attr_title[0] }}
+                                    href="{{ $document['document']->attr_custom_url[0] }}">{{ $document['document']->attr_title[0] }}
                                 </a>
                             @else
                                 <a class="link link-hover text-lg"
-                                    href="{{ $document->attr_custom_url[0] }}">{{ $document->id }}
+                                    href="{{ $document['document']->attr_custom_url[0] }}">{{ $document['document']->id }}
                                 </a>
                             @endif
-                            @if ($document->attr_keywords)
-                                <p class="m-0 font-bold">{{ $document->attr_keywords[0] }}</p>
+                            @if ($document['keywords'])
+                                <p class="m-0 font-bold">{{ implode(',', $document['keywords']) }}</p>
                             @endif
-                            @if ($document->attr_description)
-                                <p class="m-0">{{ $document->attr_description[0] }}</p>
+                            @if ($document['document']->attr_description)
+                                <p class="m-0">{{ $document['document']->attr_description[0] }}</p>
                             @endif
                         </div>
                     @endforeach
